@@ -1,0 +1,35 @@
+{
+  "name": "@opensketch/backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "opensketch Core API & AI Gateway Engine - ESCORP IDS",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test:audits": "vitest run --dir ../audits"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/cors": "^11.4.3",
+    "@fastify/helmet": "^13.2.0",
+    "@google-cloud/storage": "^9.0.0",
+    "@google-cloud/vertexai": "^1.1.0",
+    "dotenv": "^16.4.5",
+    "fastify": "^5.12.8",
+    "google-auth-library": "^9.11.0",
+    "ioredis": "^5.4.1",
+    "nodemailer": "^10.6.1",
+    "pg": "^8.12.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.12.0",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.11.6",
+    "tsx": "^4.15.7",
+    "typescript": "^5.5.2",
+    "vitest": "^5.1.1"
+  }
+}

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Allow: /recursos
+Allow: /blog
+Allow: /planos
+Allow: /entrar
+Allow: /privacidade
+Allow: /termos
+
+Sitemap: https://opensketch.com.br/sitemap.xml

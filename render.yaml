@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: opensketch-backend
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: FIREBASE_PROJECT_ID
+        value: opensketch-e7eb1
+      - key: FRONTEND_URL
+        value: https://opensketch-e7eb1.web.app
+      - key: APP_URL
+        value: https://opensketch-e7eb1.web.app
+      - key: ALLOWED_ORIGINS
+        value: https://opensketch-e7eb1.web.app
+      - key: ALLOWED_ORIGIN
+        value: https://opensketch-e7eb1.web.app
+      - key: PAGBANK_ENV
+        value: production
+      - key: PAGBANK_TOKEN
+        sync: false
+      - key: PAGBANK_WEBHOOK_SECRET
+        sync: false
+      - key: PAGBANK_WEBHOOK_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USER
+        value: escorpsystems@gmail.com
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        value: "ESCORP I.D.S. <escorpsystems@gmail.com>"

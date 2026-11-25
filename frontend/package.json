@@ -1,0 +1,24 @@
+{
+  "name": "@opensketch/frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 3000",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "firebase": "^13.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "puppeteer-core": "^25.18.1",
+    "typescript": "^5.5.2",
+    "vite": "^8.3.8"
+  }
+}

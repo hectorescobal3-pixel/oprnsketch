@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Assinaturas pré-ativadas por e-mail antes do primeiro login.
+    // Somente o próprio usuário autenticado com e-mail correspondente pode ler e consumir (deletar) ao migrar para users/{uid}.
+    match /pending_subscriptions/{email} {
+      allow read, delete: if request.auth != null && request.auth.token.email == email;
+      allow create, update: if false;
+    }
+
+    // Perfil e plano do usuário: leitura pelo próprio uid.
+    // Criação inicial pelo cliente permitida como usuário comum no plano free OU reivindicando
+    // uma assinatura pré-ativada válida em pending_subscriptions/{email}.
+    // Atualização pelo cliente permitida exclusivamente para migrar de 'free' ao reivindicar pending_subscriptions/{email}.
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.data.planStatus == 'active'
+                    && (!('role' in request.resource.data) || request.resource.data.role == 'user')
+                    && (!('isOwner' in request.resource.data) || request.resource.data.isOwner == false)
+                    && (!('unlimitedQuota' in request.resource.data) || request.resource.data.unlimitedQuota == false)
+                    && (
+                      (request.resource.data.plan == 'free'
+                        && (!('lifetimeAccess' in request.resource.data) || request.resource.data.lifetimeAccess == false))
+                      || (
+                        request.auth.token.email != null
+                        && exists(/databases/$(database)/documents/pending_subscriptions/$(request.auth.token.email))
+                        && request.resource.data.plan == get(/databases/$(database)/documents/pending_subscriptions/$(request.auth.token.email)).data.plan
+                      )
+                    );
+      allow update: if request.auth != null
+                    && request.auth.uid == uid
+                    && resource.data.plan == 'free'
+                    && request.resource.data.planStatus == 'active'
+                    && (!('role' in request.resource.data) || request.resource.data.role == 'user')
+                    && (!('isOwner' in request.resource.data) || request.resource.data.isOwner == false)
+                    && (!('unlimitedQuota' in request.resource.data) || request.resource.data.unlimitedQuota == false)
+                    && request.auth.token.email != null
+                    && exists(/databases/$(database)/documents/pending_subscriptions/$(request.auth.token.email))
+                    && request.resource.data.plan == get(/databases/$(database)/documents/pending_subscriptions/$(request.auth.token.email)).data.plan;
+      allow delete: if false;
+    }
+
+    // Franquia mensal de IA: somente leitura pelo próprio usuário autenticado.
+    // Toda escrita/incremento atômico é exclusiva do backend via Admin/ADC.
+    match /usage/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Ativações pagas via checkout anônimo: acesso exclusivo do backend via Admin/ADC.
+    match /paid_activations/{token} {
+      allow read, write: if false;
+    }
+
+    // Bloqueio padrão para qualquer outra coleção não explicitamente liberada
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
