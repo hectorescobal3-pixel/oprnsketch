@@ -4,6 +4,7 @@ import { AppStorage, ClientRecord } from '../services/app-storage';
 import { sanitizePlainText, sanitizeEmail, sanitizePhone } from '../security/sanitizer';
 import { formatCpfCnpj, sanitizeCpfCnpj, validateCpfCnpj } from '../security/cpf-cnpj-validator';
 import { getCurrentFirebaseIdToken } from '../services/firebase-client';
+import { getApiBaseUrl } from '../services/user-plan-service';
 
 interface ClientesViewProps {
   context: WorkspaceContext;
@@ -135,9 +136,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ context }) => {
         reader.readAsDataURL(file);
       });
 
-      const apiBase = ((typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || '')
-        .trim()
-        .replace(/\/+$/, '');
+      const apiBase = getApiBaseUrl();
       const idToken = await getCurrentFirebaseIdToken();
       const res = await fetch(`${apiBase}/api/clients/extract-document`, {
         method: 'POST',

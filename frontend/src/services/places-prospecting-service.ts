@@ -4,6 +4,7 @@
 // ==============================================================================
 
 import { getCurrentFirebaseIdToken } from './firebase-client';
+import { getApiBaseUrl } from './user-plan-service';
 
 export interface PlaceOpportunity {
   id: string;
@@ -171,9 +172,7 @@ export class PlacesProspectingService {
    * Roteia via Back-end seguro (/api/prospecting/search), com catálogo local resiliente como fallback garantido.
    */
   public static async searchPlaces(filter: PlacesSearchFilter): Promise<PlaceOpportunity[]> {
-    const apiBase = ((typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || '')
-      .trim()
-      .replace(/\/+$/, '');
+    const apiBase = getApiBaseUrl();
     const prof = filter.profession || 'Todas as Profissões';
     const uf = (filter.state || 'TODOS').toUpperCase();
     const cityInput = (filter.city || filter.query || '').trim();

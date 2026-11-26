@@ -5,7 +5,7 @@
 // ==============================================================================
 
 import { AppStorage, ScopeType, normalizeWorkspaceEnv } from './app-storage';
-import { applyAuthenticatedPlanState, getActiveRuntimePlan, isActiveOwner } from './user-plan-service';
+import { applyAuthenticatedPlanState, getActiveRuntimePlan, getApiBaseUrl, isActiveOwner } from './user-plan-service';
 import { getCurrentFirebaseIdToken } from './firebase-client';
 
 export interface ChatHistoryMessage {
@@ -438,7 +438,7 @@ ${leadsSummary}
 
     try {
       const idToken = await getCurrentFirebaseIdToken();
-      const res = await fetch('/api/ai/quota', {
+      const res = await fetch(`${getApiBaseUrl()}/api/ai/quota`, {
         method: 'GET',
         headers: {
           ...this.getAiSecurityHeaders(),
@@ -501,7 +501,7 @@ ${leadsSummary}
 
     try {
       const idToken = await getCurrentFirebaseIdToken();
-      const response = await fetchImpl('/api/ai/chat', {
+      const response = await fetchImpl(`${getApiBaseUrl()}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1315,7 +1315,7 @@ Como podemos ajudar você agora?`,
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       const idToken = await getCurrentFirebaseIdToken();
-      const response = await fetch('/api/prospecting/generate-phrases', {
+      const response = await fetch(`${getApiBaseUrl()}/api/prospecting/generate-phrases`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

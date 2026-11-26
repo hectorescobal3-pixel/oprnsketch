@@ -5,6 +5,7 @@ import { PlacesProspectingService, PlaceOpportunity } from '../services/places-p
 import { getMunicipalitiesByState, filterMunicipalities } from '../services/ibge-municipios-service';
 import { InteractiveFlatWorldMap } from '../components/InteractiveFlatWorldMap';
 import { getCurrentFirebaseIdToken } from '../services/firebase-client';
+import { getApiBaseUrl } from '../services/user-plan-service';
 
 const PROFESSIONS_LIST = [
   'Todas as Profissões',
@@ -251,9 +252,7 @@ export const ProspeccaoView: React.FC = () => {
     const abortTimer = setTimeout(() => controller.abort(), 9000);
 
     try {
-      const apiBase = ((typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || '')
-        .trim()
-        .replace(/\/+$/, '');
+      const apiBase = getApiBaseUrl();
       const idToken = await getCurrentFirebaseIdToken();
       const res = await fetch(`${apiBase}/api/ai/prospection`, {
         method: 'POST',

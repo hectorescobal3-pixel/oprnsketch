@@ -29,9 +29,10 @@ export function isMasterOwnerEmail(email?: string | null): boolean {
   return String(email || '').trim().toLowerCase() === MASTER_OWNER_EMAIL;
 }
 
-function getApiBaseUrl(): string {
+export function getApiBaseUrl(): string {
   try {
-    const raw = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) || '';
+    const env = typeof import.meta !== 'undefined' ? (import.meta as any).env : undefined;
+    const raw = env?.VITE_API_BASE_URL || env?.VITE_API_URL || '';
     return String(raw).trim().replace(/\/+$/, '');
   } catch {
     return '';
@@ -183,7 +184,7 @@ export async function initDefaultFreeUserPlan(user: {
   // 1. Consulta sempre o backend autenticado primeiro (valida JWT do Firebase e OWNER_MASTER_EMAIL no servidor)
   try {
     const idToken = await getCurrentFirebaseIdToken();
-    const res = await fetch('/api/users/me/init', {
+    const res = await fetch(`${getApiBaseUrl()}/api/users/me/init`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -321,7 +322,7 @@ export function subscribeUserPlanRealtime(
   // Consulta imediata autenticada com Bearer token (/api/users/me/plan)
   getCurrentFirebaseIdToken()
     .then((idToken) =>
-      fetch('/api/users/me/plan', {
+      fetch(`${getApiBaseUrl()}/api/users/me/plan`, {
         method: 'GET',
         headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
         credentials: 'include',

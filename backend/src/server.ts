@@ -148,13 +148,17 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
   startBillingReminderJob();
   const isProd = options.isProduction ?? process.env.NODE_ENV === 'production';
   const rawOrigins = process.env.ALLOWED_ORIGINS || process.env.ALLOWED_ORIGIN || 'http://localhost:3000';
+  const officialProdOrigins = [
+    'https://opensketch-e7eb1.web.app',
+    'https://opensketch-e7eb1.firebaseapp.com',
+  ];
   const configuredOrigins = rawOrigins
     .split(',')
-    .map((o) => o.trim())
+    .map((o) => o.trim().replace(/\/+$/, ''))
     .filter(Boolean);
   const corsOrigins = isProd
-    ? configuredOrigins
-    : Array.from(new Set([...configuredOrigins, 'http://127.0.0.1:3000', 'http://localhost:3000']));
+    ? Array.from(new Set([...configuredOrigins, ...officialProdOrigins]))
+    : Array.from(new Set([...configuredOrigins, ...officialProdOrigins, 'http://127.0.0.1:3000', 'http://localhost:3000']));
   const sessionSecret = process.env.SESSION_SECRET || 'dev_secret_at_least_32_characters_long_opensketch_2026';
 
   const app = fastify({
