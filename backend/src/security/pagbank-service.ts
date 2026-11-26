@@ -290,11 +290,9 @@ export class PagBankBillingService {
     const isAnonymous = !params.uid || params.uid === 'anon' || params.uid === 'guest';
     const refOwner = isAnonymous ? 'anon' : params.uid;
     const referenceId = `${refOwner}:${planSpec.id}:${checkoutId}`;
-    const pagbankToken = SecretsVault.get('PAGBANK_TOKEN') || process.env.PAGBANK_TOKEN;
-    const isProdPagBank = process.env.PAGBANK_ENV === 'production';
-    const baseApi = isProdPagBank
-      ? 'https://api.pagseguro.com'
-      : 'https://sandbox.api.pagseguro.com';
+    const rawToken = (SecretsVault.get('PAGBANK_TOKEN') || process.env.PAGBANK_TOKEN || '').trim();
+    const pagbankToken = rawToken.replace(/^Bearer\s+/i, '').replace(/[\r\n]+/g, '').trim();
+    const checkoutEndpoint = 'https://api.pagseguro.com/checkouts';
 
     const frontendBase = (
       process.env.FRONTEND_URL ||
@@ -319,11 +317,12 @@ export class PagBankBillingService {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 12000);
       try {
-        const res = await fetch(`${baseApi}/checkouts`, {
+        const res = await fetch(checkoutEndpoint, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${pagbankToken}`,
             'Content-Type': 'application/json',
+            Accept: 'application/json',
           },
           body: JSON.stringify({
             reference_id: referenceId,
@@ -394,11 +393,14 @@ export class PagBankBillingService {
    * Valida assinatura HMAC-SHA256 enviada pelo PagBank no webhook.
    */
   public verifyWebhookSignature(rawBody: string, signatureHeader?: string | string[]): boolean {
-    const secret =
+    const rawSecret = (
       SecretsVault.get('PAGBANK_WEBHOOK_SECRET') ||
       process.env.PAGBANK_WEBHOOK_SECRET ||
       SecretsVault.get('PAGBANK_TOKEN') ||
-      process.env.PAGBANK_TOKEN;
+      process.env.PAGBANK_TOKEN ||
+      ''
+    ).trim();
+    const secret = rawSecret.replace(/^Bearer\s+/i, '').replace(/[\r\n]+/g, '').trim();
 
     if (!secret) {
       return process.env.NODE_ENV !== 'production';
