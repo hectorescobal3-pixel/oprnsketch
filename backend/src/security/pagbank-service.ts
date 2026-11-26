@@ -283,6 +283,7 @@ export class PagBankBillingService {
     plan: PaidPlanId;
     customerEmail?: string;
     customerName?: string;
+    customerTaxId?: string;
     originUrl?: string;
   }) {
     const planSpec = PAGBANK_PLAN_CATALOG[params.plan];
@@ -292,7 +293,7 @@ export class PagBankBillingService {
     const referenceId = `${refOwner}:${planSpec.id}:${checkoutId}`;
     const rawToken = (SecretsVault.get('PAGBANK_TOKEN') || process.env.PAGBANK_TOKEN || '').trim();
     const pagbankToken = rawToken.replace(/^Bearer\s+/i, '').replace(/[\r\n]+/g, '').trim();
-    const checkoutEndpoint = 'https://api.pagseguro.com/checkouts';
+    const ordersEndpoint = 'https://api.pagseguro.com/orders';
 
     const frontendBase = (
       process.env.FRONTEND_URL ||
@@ -305,19 +306,22 @@ export class PagBankBillingService {
         ? frontendBase
         : process.env.APP_URL || 'https://opensketch-e7eb1.web.app'
     ).replace(/\/+$/, '');
-    const returnUrl = isAnonymous
-      ? `${publicHttpsBase}/ativar-conta`
-      : `${publicHttpsBase}/`;
     const webhookUrlEnv = (process.env.PAGBANK_WEBHOOK_URL || '').trim();
     const notificationUrl = webhookUrlEnv.startsWith('https://')
       ? webhookUrlEnv
       : `${publicHttpsBase}/api/webhooks/pagbank`;
 
+    const safeCustomerName = (params.customerName || 'Cliente opensketch').trim().slice(0, 120);
+    const safeCustomerEmail = (params.customerEmail || 'pagamentos@opensketch.app').trim().toLowerCase();
+    const rawTaxDigits = String(params.customerTaxId || '').replace(/\D/g, '');
+    const safeTaxId = rawTaxDigits.length === 11 || rawTaxDigits.length === 14 ? rawTaxDigits : '12345678909';
+    const pixExpirationIso = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
     if (pagbankToken) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 12000);
       try {
-        const res = await fetch(checkoutEndpoint, {
+        const res = await fetch(ordersEndpoint, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${pagbankToken}`,
@@ -326,7 +330,11 @@ export class PagBankBillingService {
           },
           body: JSON.stringify({
             reference_id: referenceId,
-            customer_modifiable: true,
+            customer: {
+              name: safeCustomerName,
+              email: safeCustomerEmail,
+              tax_id: safeTaxId,
+            },
             items: [
               {
                 reference_id: planSpec.id,
@@ -335,12 +343,14 @@ export class PagBankBillingService {
                 unit_amount: planSpec.amountCents,
               },
             ],
-            payment_methods: [
-              { type: 'CREDIT_CARD' },
-              { type: 'PIX' },
-              { type: 'BOLETO' },
+            qr_codes: [
+              {
+                amount: {
+                  value: planSpec.amountCents,
+                },
+                expiration_date: pixExpirationIso,
+              },
             ],
-            redirect_url: returnUrl,
             notification_urls: [notificationUrl],
           }),
           signal: controller.signal,
@@ -349,20 +359,28 @@ export class PagBankBillingService {
 
         if (res.ok) {
           const data = (await res.json()) as any;
-          const payLink = Array.isArray(data?.links)
-            ? data.links.find((l: any) => l?.rel === 'PAY')?.href
+          const qrCode = Array.isArray(data?.qr_codes) ? data.qr_codes[0] : null;
+          const qrPngLink = Array.isArray(qrCode?.links)
+            ? qrCode.links.find((l: any) => l?.rel === 'QRCODE.PNG')?.href || null
+            : null;
+          const qrBase64Link = Array.isArray(qrCode?.links)
+            ? qrCode.links.find((l: any) => l?.rel === 'QRCODE.BASE64')?.href || null
             : null;
           return {
-            mode: 'pagbank' as const,
+            mode: 'pagbank_pix' as const,
             checkoutId: data?.id || checkoutId,
+            orderId: data?.id || checkoutId,
             referenceId,
             plan: planSpec.id,
             amountCents: planSpec.amountCents,
-            checkoutUrl: payLink || null,
+            checkoutUrl: null,
+            pixCopyPaste: typeof qrCode?.text === 'string' ? qrCode.text : null,
+            pixQrCodeUrl: qrPngLink || qrBase64Link || null,
+            pixExpiresAt: qrCode?.expiration_date || pixExpirationIso,
           };
         } else {
           const errText = await res.text().catch(() => '');
-          console.warn(`[PagBank] Checkout API returned ${res.status}: ${errText}`);
+          console.warn(`[PagBank] Orders API returned ${res.status}: ${errText}`);
           return {
             mode: 'pagbank_api_error' as const,
             checkoutId,
@@ -370,7 +388,7 @@ export class PagBankBillingService {
             plan: planSpec.id,
             amountCents: planSpec.amountCents,
             checkoutUrl: null,
-            message: `PagBank API retornou ${res.status}: ${errText || 'Verifique os dados do checkout.'}`,
+            message: `PagBank API retornou ${res.status}: ${errText || 'Verifique os dados do pedido.'}`,
           };
         }
       } catch {
@@ -385,7 +403,7 @@ export class PagBankBillingService {
       plan: planSpec.id,
       amountCents: planSpec.amountCents,
       checkoutUrl: null,
-      message: 'Checkout preparado no servidor. Configure PAGBANK_TOKEN no .env para abrir o link real do PagBank.',
+      message: 'Pedido preparado no servidor. Configure PAGBANK_TOKEN para gerar o PIX no PagBank.',
     };
   }
 

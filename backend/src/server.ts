@@ -2050,6 +2050,9 @@ REGRAS OBRIGATÓRIAS:
     const originHeader = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
     const result = await pagBankService.createCheckout({
       plan: requestedPlan,
+      customerEmail: typeof body.email === 'string' ? body.email.trim().slice(0, 120) : undefined,
+      customerName: typeof body.name === 'string' ? body.name.trim().slice(0, 120) : undefined,
+      customerTaxId: typeof body.cpf === 'string' ? body.cpf.trim().slice(0, 20) : undefined,
       originUrl: originHeader,
     });
 
@@ -2166,6 +2169,7 @@ REGRAS OBRIGATÓRIAS:
       plan: requestedPlan,
       customerEmail: user.email,
       customerName,
+      customerTaxId: typeof body.cpf === 'string' ? body.cpf.trim().slice(0, 20) : undefined,
       originUrl: originHeader,
     });
 
