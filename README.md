@@ -1,4 +1,4 @@
-# 🏛️ OPENsketch — Plataforma de Gestão de Vendas com Ingestão Inteligente
+2# 🏛️ OPENsketch — Plataforma de Gestão de Vendas com Ingestão Inteligente
 **Empresa**: ESCORP Solutions Systems  
 **Escala Planejada**: 30.000+ Usuários Simultâneos  
 **Arquitetura & Governança**: Software Architect & Alya
