@@ -12,6 +12,7 @@ import { EnvironmentTransitionOverlay } from './components/EnvironmentTransition
 import { PublicLegalPage } from './components/LegalModal';
 import { LandingPage, PublicPageRoute, PlanType } from './components/LandingPage';
 import { UpgradeCheckoutModal } from './components/UpgradeCheckoutModal';
+import { PixPaymentModal, PixPaymentData } from './components/PixPaymentModal';
 import {
   SubscriptionPlan,
   applyAuthenticatedPlanState,
@@ -208,6 +209,7 @@ export const App: React.FC = () => {
 
   const [landingCheckoutLoading, setLandingCheckoutLoading] = useState<PlanType | null>(null);
   const [landingCheckoutError, setLandingCheckoutError] = useState<string | null>(null);
+  const [landingPixData, setLandingPixData] = useState<PixPaymentData | null>(null);
 
   const handleLandingPlanSelect = async (plan: PlanType) => {
     setLandingCheckoutError(null);
@@ -225,11 +227,23 @@ export const App: React.FC = () => {
     setLandingCheckoutLoading(plan);
     try {
       const result = await createAnonymousPagBankCheckout(mapped);
+      if (result.pixCopyPaste) {
+        setLandingPixData({
+          plan: result.plan,
+          amountCents: result.amountCents,
+          referenceId: result.referenceId,
+          orderId: result.orderId || result.checkoutId,
+          pixCopyPaste: result.pixCopyPaste,
+          pixQrCodeUrl: result.pixQrCodeUrl || null,
+          pixExpiresAt: result.pixExpiresAt || null,
+        });
+        return;
+      }
       if (result.checkoutUrl) {
         window.location.href = result.checkoutUrl;
         return;
       }
-      const msg = result.message || 'Não foi possível obter a URL oficial de pagamento do PagBank.';
+      const msg = result.message || 'Não foi possível gerar o pagamento PIX no PagBank.';
       setLandingCheckoutError(msg);
       if (typeof window !== 'undefined') window.alert(msg);
     } catch (err: any) {
@@ -888,13 +902,30 @@ export const App: React.FC = () => {
         : '/';
 
     return (
-      <LandingPage
-        currentRoute={landingRoute}
-        onNavigate={navigatePublic}
-        onSelectPlan={handleLandingPlanSelect}
-        checkoutLoadingPlan={landingCheckoutLoading}
-        checkoutError={landingCheckoutError}
-      />
+      <>
+        <LandingPage
+          currentRoute={landingRoute}
+          onNavigate={navigatePublic}
+          onSelectPlan={handleLandingPlanSelect}
+          checkoutLoadingPlan={landingCheckoutLoading}
+          checkoutError={landingCheckoutError}
+        />
+        <PixPaymentModal
+          isOpen={Boolean(landingPixData)}
+          data={landingPixData}
+          isAnonymous={true}
+          onClose={() => setLandingPixData(null)}
+          onActivationConfirmed={(activationToken, email) => {
+            setLandingPixData(null);
+            const qs = new URLSearchParams({ token: activationToken });
+            if (email) qs.set('email', email);
+            if (typeof window !== 'undefined') {
+              window.history.pushState({}, '', `/criar-conta?${qs.toString()}`);
+            }
+            setPublicRoute('/criar-conta');
+          }}
+        />
+      </>
     );
   }
 

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPagBankCheckout, SubscriptionPlan } from '../services/user-plan-service';
+import { PixPaymentModal, PixPaymentData } from './PixPaymentModal';
 
 interface UpgradeCheckoutModalProps {
   isOpen: boolean;
@@ -20,26 +21,34 @@ export const UpgradeCheckoutModal: React.FC<UpgradeCheckoutModalProps> = ({
 }) => {
   const [loadingPlan, setLoadingPlan] = useState<'essential_monthly' | 'pro_lifetime' | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [checkoutInfo, setCheckoutInfo] = useState<{
-    referenceId: string;
-    amountCents: number;
-    checkoutUrl: string | null;
-  } | null>(null);
+  const [pixData, setPixData] = useState<PixPaymentData | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setPixData(null);
+      setStatusMessage(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleCheckout = async (plan: 'essential_monthly' | 'pro_lifetime') => {
     setLoadingPlan(plan);
     setStatusMessage(null);
-    setCheckoutInfo(null);
+    setPixData(null);
     try {
       const result = await createPagBankCheckout(plan, userName);
-      setCheckoutInfo({
-        referenceId: result.referenceId,
-        amountCents: result.amountCents,
-        checkoutUrl: result.checkoutUrl,
-      });
-      if (result.checkoutUrl) {
+      if (result.pixCopyPaste) {
+        setPixData({
+          plan: result.plan,
+          amountCents: result.amountCents,
+          referenceId: result.referenceId,
+          orderId: result.orderId || result.checkoutId,
+          pixCopyPaste: result.pixCopyPaste,
+          pixQrCodeUrl: result.pixQrCodeUrl || null,
+          pixExpiresAt: result.pixExpiresAt || null,
+        });
+      } else if (result.checkoutUrl) {
         window.open(result.checkoutUrl, '_blank', 'noopener,noreferrer');
         setStatusMessage(
           'Checkout PagBank aberto em nova aba. Assim que o pagamento for confirmado, seus módulos serão destravados automaticamente aqui na tela.'
@@ -47,7 +56,7 @@ export const UpgradeCheckoutModal: React.FC<UpgradeCheckoutModalProps> = ({
       } else {
         setStatusMessage(
           result.message ||
-            'Sessão PagBank registrada no servidor. Configure PAGBANK_TOKEN no .env para abrir o link de pagamento.'
+            'Não foi possível gerar a cobrança PIX no PagBank. Tente novamente em instantes.'
         );
       }
     } catch (err: any) {
@@ -135,34 +144,6 @@ export const UpgradeCheckoutModal: React.FC<UpgradeCheckoutModalProps> = ({
             }}
           >
             <div>{statusMessage}</div>
-            {checkoutInfo && (
-              <div style={{ marginTop: '8px', fontSize: '12px', color: '#94A3B8', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div>
-                  Referência: <code>{checkoutInfo.referenceId}</code> • Valor validado no servidor:{' '}
-                  <strong>R$ {(checkoutInfo.amountCents / 100).toFixed(2).replace('.', ',')}</strong>
-                </div>
-                {checkoutInfo.checkoutUrl && (
-                  <a
-                    href={checkoutInfo.checkoutUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-block',
-                      alignSelf: 'flex-start',
-                      padding: '8px 14px',
-                      borderRadius: '8px',
-                      backgroundColor: '#EA580C',
-                      color: '#FFFFFF',
-                      fontWeight: 700,
-                      fontSize: '12.5px',
-                      textDecoration: 'none',
-                    }}
-                  >
-                    Abrir Checkout Oficial PagBank →
-                  </a>
-                )}
-              </div>
-            )}
           </div>
         )}
 
@@ -276,6 +257,16 @@ export const UpgradeCheckoutModal: React.FC<UpgradeCheckoutModalProps> = ({
           </div>
         </div>
       </div>
+
+      <PixPaymentModal
+        isOpen={Boolean(pixData)}
+        data={pixData}
+        isAnonymous={false}
+        onClose={() => setPixData(null)}
+        onManualRefresh={() => {
+          onClose();
+        }}
+      />
     </div>
   );
 };

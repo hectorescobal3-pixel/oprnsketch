@@ -445,6 +445,10 @@ export async function createPagBankCheckout(
   plan: 'essential_monthly' | 'pro_lifetime';
   amountCents: number;
   checkoutUrl: string | null;
+  orderId?: string;
+  pixCopyPaste?: string | null;
+  pixQrCodeUrl?: string | null;
+  pixExpiresAt?: string | null;
   message?: string;
 }> {
   const authUser = getFirebaseAuthClient()?.currentUser;
@@ -486,6 +490,10 @@ export async function createAnonymousPagBankCheckout(
   plan: 'essential_monthly' | 'pro_lifetime';
   amountCents: number;
   checkoutUrl: string | null;
+  orderId?: string;
+  pixCopyPaste?: string | null;
+  pixQrCodeUrl?: string | null;
+  pixExpiresAt?: string | null;
   message?: string;
 }> {
   const apiBase = getApiBaseUrl();
